@@ -41,7 +41,7 @@ OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
 OPENAI_MODEL = env("OPENAI_MODEL", "llama-3.3-70b-versatile")
 OPENAI_VISION_MODEL = env("OPENAI_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
-LLM_TIMEOUT = float(env("LLM_TIMEOUT", "45"))
+LLM_TIMEOUT = float(env("LLM_TIMEOUT", "20"))
 
 # Optional email sending (for the doctor review link). Leave empty to show the link on screen instead.
 SMTP_HOST = env("SMTP_HOST")
@@ -59,7 +59,7 @@ DB_PATH = env("DB_PATH", str(BASE_DIR.parent / "medpassport.db"))
 # External drug database (US National Library of Medicine, free, no key).
 RXNORM_BASE_URL = env("RXNORM_BASE_URL", "https://rxnav.nlm.nih.gov/REST")
 RXNORM_ENABLED = env("RXNORM_ENABLED", "true").lower() == "true"
-HTTP_TIMEOUT = float(env("HTTP_TIMEOUT", "8"))
+HTTP_TIMEOUT = float(env("HTTP_TIMEOUT", "5"))
 
 # Seed a demo case on first start so judges always see a complete example.
 SEED_DEMO = env("SEED_DEMO", "true").lower() == "true"

@@ -177,7 +177,7 @@ def ai_check():
     else:
         start = time.perf_counter()
         try:
-            reply = llm.generate("Reply with the single word OK.")
+            reply = llm.generate("Reply with the single word OK.", budget=15)
             result.update(ok=True, reply=reply[:20])
         except llm.LLMError as e:
             result.update(ok=False, error=str(e)[:400])

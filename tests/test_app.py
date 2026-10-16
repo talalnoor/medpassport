@@ -259,7 +259,7 @@ def test_gemini_timeout_message(monkeypatch):
         llm.generate("hi")
         raise AssertionError("expected LLMError")
     except llm.LLMError as e:
-        assert "did not answer within" in str(e)
+        assert "in time" in str(e)
 
 
 def test_gemini_busy_retries_then_fallback(monkeypatch):
@@ -298,3 +298,42 @@ def test_gemini_busy_gives_friendly_message(monkeypatch):
         raise AssertionError("expected LLMError")
     except llm.LLMError as e:
         assert "busy right now" in str(e)
+
+
+def test_slow_ai_never_blocks_trip_check(monkeypatch):
+    """Even if the AI hangs, checking a trip must finish quickly (gateway limit is ~30 s)."""
+    import time as _t
+    import httpx
+    from app import agent, config
+    from app.tools import llm
+
+    def hang(url, json=None, headers=None, timeout=None):
+        _t.sleep(min(timeout, 0.3))  # simulate waiting the whole allowed time (scaled down)
+        raise httpx.ReadTimeout("slow")
+
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(llm.httpx, "post", hang)
+    case = agent.new_case({"name": "A", "departure_date": ""}, [{"code": "JP", "name": "Japan", "transit": False}],
+                          [{"name": "Sudafed"}, {"name": "Unknownbrandxyz"}])
+    start = _t.monotonic()
+    agent.run(case)
+    assert _t.monotonic() - start < 5
+    assert case["status"] == "awaiting_traveler_review" and case["summary"]
+
+
+def test_budget_stops_retries(monkeypatch):
+    from app import config
+    from app.tools import llm
+
+    calls = []
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(config, "GEMINI_FALLBACK_MODEL", "")
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: calls.append(1) or _FakeResponse({"error": {"message": "busy"}}, 503))
+    try:
+        llm.generate("hi", budget=4)
+    except llm.LLMError:
+        pass
+    assert len(calls) == 1  # 4 s budget leaves no room for a retry
