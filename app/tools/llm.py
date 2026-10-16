@@ -65,6 +65,15 @@ def _error_message(r) -> str:
     return (msg or "no details")[:240]
 
 
+def _thinking_config(model: str) -> dict | None:
+    """Labels and short summaries need no long reasoning; less thinking = much faster replies."""
+    if "2.5-flash" in model:
+        return {"thinkingBudget": 0}
+    if model.startswith("gemini-3"):
+        return {"thinkingLevel": "low"}
+    return None
+
+
 def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:
     parts: list[dict] = [{"text": prompt}]
     if image:
@@ -73,21 +82,31 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
                   "generationConfig": {"temperature": 0.2}}
     if want_json:
         body["generationConfig"]["responseMimeType"] = "application/json"
-    if "2.5-flash" in config.GEMINI_MODEL:
-        # Reading a label needs no long reasoning; skipping it keeps replies fast
-        body["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
+    thinking = _thinking_config(config.GEMINI_MODEL)
+    if thinking:
+        body["generationConfig"]["thinkingConfig"] = thinking
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
+    headers = {"x-goog-api-key": config.GEMINI_API_KEY}
     try:
-        r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT,
-                       headers={"x-goog-api-key": config.GEMINI_API_KEY})
+        r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT, headers=headers)
+        if r.status_code == 400 and thinking and "think" in r.text.lower():
+            # This model does not accept the thinking setting: retry once without it
+            body["generationConfig"].pop("thinkingConfig", None)
+            r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT, headers=headers)
+    except httpx.TimeoutException as e:
+        raise LLMError(f"Gemini did not answer within {int(config.LLM_TIMEOUT)} seconds (model {config.GEMINI_MODEL})") from e
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach Gemini: {e.__class__.__name__}") from e
     if r.status_code != 200:
         raise LLMError(f"Gemini returned HTTP {r.status_code}: {_error_message(r)}")
     try:
-        return r.json()["candidates"][0]["content"]["parts"][0]["text"]
+        parts = r.json()["candidates"][0]["content"]["parts"]
+        text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
     except (KeyError, IndexError, ValueError) as e:
         raise LLMError("Gemini returned an empty answer.") from e
+    if not text.strip():
+        raise LLMError("Gemini returned an empty answer.")
+    return text
 
 
 def _openai(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:

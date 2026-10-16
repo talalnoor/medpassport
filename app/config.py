@@ -34,12 +34,12 @@ def env(name: str, default: str = "") -> str:
 # AI model provider: "gemini", "openai" (any OpenAI-compatible API such as Groq), or "none".
 LLM_PROVIDER = env("LLM_PROVIDER", "gemini").lower()
 GEMINI_API_KEY = env("GEMINI_API_KEY")
-GEMINI_MODEL = env("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = env("GEMINI_MODEL", "gemini-3.8-flash")
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
 OPENAI_MODEL = env("OPENAI_MODEL", "llama-3.3-70b-versatile")
 OPENAI_VISION_MODEL = env("OPENAI_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
-LLM_TIMEOUT = float(env("LLM_TIMEOUT", "25"))
+LLM_TIMEOUT = float(env("LLM_TIMEOUT", "45"))
 
 # Optional email sending (for the doctor review link). Leave empty to show the link on screen instead.
 SMTP_HOST = env("SMTP_HOST")

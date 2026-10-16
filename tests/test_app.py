@@ -200,3 +200,41 @@ def test_mcp_tool_check_trip():
     out = check_trip(["Sudafed"], ["JP", "GB"], "2030-01-01")
     statuses = {f["country"]: f["status"] for f in out["findings"]}
     assert statuses == {"Japan": "prohibited", "United Kingdom": "allowed"}
+
+
+def test_gemini_retries_without_thinking_setting(monkeypatch):
+    from app import config
+    from app.tools import llm
+
+    calls = []
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        calls.append(json["generationConfig"].get("thinkingConfig"))
+        if len(calls) == 1:
+            return _FakeResponse({"error": {"message": "Unknown field thinkingLevel"}}, 400)
+        return _FakeResponse({"candidates": [{"content": {"parts": [{"text": "OK"}]}}]})
+
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(config, "GEMINI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setattr(llm.httpx, "post", fake_post)
+    assert llm.generate("hi") == "OK"
+    assert calls == [{"thinkingLevel": "low"}, None]
+
+
+def test_gemini_timeout_message(monkeypatch):
+    import httpx
+    from app import config
+    from app.tools import llm
+
+    def slow(*a, **k):
+        raise httpx.ReadTimeout("slow")
+
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(llm.httpx, "post", slow)
+    try:
+        llm.generate("hi")
+        raise AssertionError("expected LLMError")
+    except llm.LLMError as e:
+        assert "did not answer within" in str(e)
