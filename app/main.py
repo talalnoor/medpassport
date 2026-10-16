@@ -153,7 +153,7 @@ def seed_demo():
     payload = CaseIn(**demo_payload())
     case = agent.new_case(payload.traveler.model_dump(), _route(payload.route),
                           [m.model_dump() for m in payload.medicines])
-    agent.run(case)
+    agent.run(case, use_ai=False)  # no AI call at startup: boots fast, works even if the AI is down
     db.save_case(case)
     db.add_audit(case["id"], "system", "demo case created", "Sample trip Lahore → Dubai (transit) → Tokyo")
 

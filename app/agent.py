@@ -60,7 +60,7 @@ def _parse_date(value: str | None) -> date | None:
         return None
 
 
-def run(case: dict) -> dict:
+def run(case: dict, use_ai: bool = True) -> dict:
     """Analyse the trip. Updates and returns the case (status: awaiting_traveler_review)."""
     trace = Trace()
     departure = _parse_date(case["traveler"].get("departure_date"))
@@ -126,7 +126,7 @@ def run(case: dict) -> dict:
 
     # 6. Plain-language summary (AI if available)
     start = time.perf_counter()
-    case["summary"], how = summarize(case)
+    case["summary"], how = summarize(case) if use_ai else (template_summary(case), "Template summary")
     trace.add("write_summary", how, "ok", int((time.perf_counter() - start) * 1000))
 
     case["trace"] = trace.items

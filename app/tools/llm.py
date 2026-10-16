@@ -7,11 +7,15 @@ verified rules engine, never from the model's memory.
 """
 import base64
 import json
+import logging
 import re
 
 import httpx
 
 from .. import config
+
+
+log = logging.getLogger("medpassport.llm")
 
 
 class LLMError(Exception):
@@ -89,10 +93,17 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
     headers = {"x-goog-api-key": config.GEMINI_API_KEY}
     try:
         r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT, headers=headers)
-        if r.status_code == 400 and thinking and "think" in r.text.lower():
-            # This model does not accept the thinking setting: retry once without it
-            body["generationConfig"].pop("thinkingConfig", None)
-            r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT, headers=headers)
+        if r.status_code == 400:
+            # Newer models can reject optional settings (thinking, temperature...).
+            # Log why, then retry once with only the essentials.
+            log.warning("Gemini 400 with full settings: %s", _error_message(r))
+            minimal = {"contents": body["contents"]}
+            if want_json:
+                minimal["generationConfig"] = {"responseMimeType": "application/json"}
+            r = httpx.post(url, json=minimal, timeout=config.LLM_TIMEOUT, headers=headers)
+            if r.status_code == 400 and want_json:
+                log.warning("Gemini 400 with JSON mode: %s", _error_message(r))
+                r = httpx.post(url, json={"contents": body["contents"]}, timeout=config.LLM_TIMEOUT, headers=headers)
     except httpx.TimeoutException as e:
         raise LLMError(f"Gemini did not answer within {int(config.LLM_TIMEOUT)} seconds (model {config.GEMINI_MODEL})") from e
     except httpx.HTTPError as e:

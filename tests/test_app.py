@@ -209,7 +209,7 @@ def test_gemini_retries_without_thinking_setting(monkeypatch):
     calls = []
 
     def fake_post(url, json=None, headers=None, timeout=None):
-        calls.append(json["generationConfig"].get("thinkingConfig"))
+        calls.append(json.get("generationConfig", {}).get("thinkingConfig"))
         if len(calls) == 1:
             return _FakeResponse({"error": {"message": "Unknown field thinkingLevel"}}, 400)
         return _FakeResponse({"candidates": [{"content": {"parts": [{"text": "OK"}]}}]})
@@ -220,6 +220,28 @@ def test_gemini_retries_without_thinking_setting(monkeypatch):
     monkeypatch.setattr(llm.httpx, "post", fake_post)
     assert llm.generate("hi") == "OK"
     assert calls == [{"thinkingLevel": "low"}, None]
+
+
+def test_gemini_400_retries_with_minimal_request(monkeypatch):
+    from app import config
+    from app.tools import llm
+
+    bodies = []
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        bodies.append(json)
+        if len(bodies) < 3:
+            return _FakeResponse({"error": {"message": "Invalid argument"}}, 400)
+        return _FakeResponse({"candidates": [{"content": {"parts": [{"text": '{"a": 1}'}]}}]})
+
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(config, "GEMINI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setattr(llm.httpx, "post", fake_post)
+    assert llm.generate("hi", want_json=True) == {"a": 1}
+    assert "temperature" in bodies[0]["generationConfig"]
+    assert bodies[1] == {"contents": bodies[0]["contents"], "generationConfig": {"responseMimeType": "application/json"}}
+    assert bodies[2] == {"contents": bodies[0]["contents"]}
 
 
 def test_gemini_timeout_message(monkeypatch):
