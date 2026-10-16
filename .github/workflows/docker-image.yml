@@ -1,0 +1,43 @@
+# Builds the Docker image on GitHub's servers and pushes it to GitHub Container Registry.
+# Trigger: push a version tag, e.g.  git tag v1.0.0 && git push origin v1.0.0
+# Then make the package PUBLIC (GitHub → your profile → Packages → medpassport → Package settings),
+# because Alternate Clouds cannot pull private images.
+name: Build Docker image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: |
+          pip install -r requirements-dev.txt
+          pytest -q
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/medpassport
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}

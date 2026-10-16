@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MedPassport</title>
+  <meta name="description" content="Check if your medicines are legal on every stop of your trip, and get the paperwork ready with your doctor.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">Rx</span><span class="brand-name">MedPassport</span></a>
+      <div class="status-strip" id="statusStrip" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>Your cold medicine can get you arrested in Japan.</h1>
+    <p>Tell MedPassport where you are flying and what you take. It checks every stop on your route, plans the permits and deadlines, and drafts the letter your doctor signs. Nothing is sent without your approval and your doctor's.</p>
+  </section>
+
+  <main class="layout">
+    <aside class="sidebar" aria-label="Trips">
+      <h3>Trips</h3>
+      <ul class="case-list" id="caseList"></ul>
+      <div class="actions"><button class="btn ghost" id="newTripBtn" type="button">Check a new trip</button></div>
+    </aside>
+
+    <div>
+      <!-- Step: trip form -->
+      <section class="section" id="formSection" aria-labelledby="formTitle">
+        <div class="section-head">
+          <h2 id="formTitle">Check a trip</h2>
+          <button class="btn ghost" id="demoBtn" type="button">Fill sample trip</button>
+        </div>
+        <form id="tripForm" novalidate>
+          <div class="grid-3">
+            <div><label for="tName">Traveller name</label><input id="tName" required autocomplete="name"></div>
+            <div><label for="tDate">Departure date</label><input id="tDate" type="date" required></div>
+            <div><label for="tPassport">Passport number (optional)</label><input id="tPassport" autocomplete="off"></div>
+          </div>
+
+          <p class="fieldset-title">Route, in order</p>
+          <p class="muted small">Add every country you land in, including transit stops.</p>
+          <div class="rows" id="stops"></div>
+          <button class="btn icon" type="button" id="addStop">Add a country</button>
+
+          <p class="fieldset-title">Medicines you will carry</p>
+          <div class="upload">
+            <label for="photo" class="small" style="margin:0">Photo of a box, strip or prescription</label>
+            <input id="photo" type="file" accept="image/png,image/jpeg,image/webp">
+            <button class="btn ghost" type="button" id="readPhoto">Read photo</button>
+          </div>
+          <div id="photoNote"></div>
+          <div class="rows" id="meds"></div>
+          <button class="btn icon" type="button" id="addMed">Add a medicine</button>
+
+          <div class="actions">
+            <button class="btn" type="submit" id="runBtn">Check my trip</button>
+            <span class="muted small" id="formMsg" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <!-- Results -->
+      <div id="results" class="hidden">
+        <section class="section" aria-labelledby="traceTitle">
+          <div class="section-head">
+            <h2 id="traceTitle">What the agent did</h2>
+            <span class="muted small" id="caseMeta"></span>
+          </div>
+          <ol class="trace" id="trace"></ol>
+        </section>
+
+        <section class="section" aria-labelledby="stampTitle">
+          <div class="section-head"><h2 id="stampTitle">Border check</h2><span class="muted small" id="rulesDate"></span></div>
+          <div id="risk"></div>
+          <p id="summary"></p>
+          <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+          <div id="findingDetail" class="finding-detail hidden" aria-live="polite"></div>
+        </section>
+
+        <section class="section" aria-labelledby="planTitle">
+          <div class="section-head">
+            <h2 id="planTitle">Your plan</h2>
+            <a class="btn ghost" id="icsLink" href="#">Add deadlines to calendar</a>
+          </div>
+          <ul class="plan" id="plan"></ul>
+        </section>
+
+        <section class="section" aria-labelledby="letterTitle">
+          <div class="section-head">
+            <h2 id="letterTitle">Doctor's letter</h2>
+            <span class="status-badge" id="statusBadge"></span>
+          </div>
+          <p class="muted small">Drafted from the verified findings above. Fix anything that is wrong, then send it to your doctor. Your doctor completes, approves and signs it.</p>
+          <label for="letter" class="hidden">Letter text</label>
+          <textarea id="letter"></textarea>
+          <div class="actions">
+            <button class="btn ghost" type="button" id="saveLetter">Save changes</button>
+            <a class="btn ghost" id="printLink" href="#" target="_blank" rel="noopener">Open printable letter</a>
+          </div>
+
+          <div class="gate" id="gate">
+            <h3>Approve and send to your doctor</h3>
+            <p class="muted small">MedPassport will create a private review link for your doctor. If you add their email, it is sent there.</p>
+            <label for="docEmail">Doctor's email (optional)</label>
+            <input id="docEmail" type="email" placeholder="doctor@clinic.com">
+            <label class="check-inline" style="margin-top:10px"><input type="checkbox" id="confirm"> I checked the medicines, route and letter, and they are correct.</label>
+            <div class="actions">
+              <button class="btn" type="button" id="approveBtn" disabled>Send to doctor</button>
+              <button class="btn danger" type="button" id="cancelBtn">Cancel this trip</button>
+            </div>
+          </div>
+          <div id="afterApprove"></div>
+        </section>
+
+        <section class="section" aria-labelledby="auditTitle">
+          <div class="section-head"><h2 id="auditTitle">Decision log</h2></div>
+          <ul class="audit" id="audit"></ul>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    MedPassport prepares information and paperwork; it is not legal or medical advice. Rules change, so confirm with the embassy or regulator linked in each result.
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

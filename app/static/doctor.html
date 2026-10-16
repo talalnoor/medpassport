@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Doctor review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar"><div class="topbar-inner"><span class="brand"><span class="brand-mark" aria-hidden="true">Rx</span><span class="brand-name">MedPassport · Doctor review</span></span></div></header>
+  <main style="max-width:860px;margin:0 auto;padding:24px 20px">
+    <div id="loading" class="section">Loading the case…</div>
+    <div id="content" class="hidden">
+      <section class="section">
+        <h2 id="title"></h2>
+        <p class="muted" id="sub"></p>
+        <div id="risk"></div>
+        <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+      </section>
+      <section class="section">
+        <h2>Letter for border officials</h2>
+        <p class="muted small">Complete the blanks (condition, your name, registration, clinic) and correct anything clinically wrong. Approving records your name and registration number; you still sign the printed copy.</p>
+        <label for="letter" class="hidden">Letter text</label>
+        <textarea id="letter"></textarea>
+        <div class="grid-3" style="margin-top:14px">
+          <div><label for="dName">Your full name</label><input id="dName" autocomplete="name"></div>
+          <div><label for="dReg">Registration / licence number</label><input id="dReg"></div>
+          <div><label for="dNote">Note to the traveller (optional)</label><input id="dNote"></div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="approve" type="button">Approve letter</button>
+          <button class="btn danger" id="changes" type="button">Send back with changes</button>
+          <span class="small" id="msg" role="status"></span>
+        </div>
+      </section>
+    </div>
+  </main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const LABEL = { prohibited: "Not allowed", permit_required: "Permit needed", prescription_required: "With prescription", caution: "Check first", allowed: "Allowed", unverified: "Not verified" };
+const token = location.pathname.split("/").pop();
+
+async function load() {
+  const res = await fetch(`/api/doctor/${encodeURIComponent(token)}`);
+  const c = await res.json();
+  if (!res.ok) { $("loading").textContent = c.detail || "This link is not valid."; return; }
+  $("loading").classList.add("hidden"); $("content").classList.remove("hidden");
+  $("title").textContent = `${c.traveler.name}: travel medicines`;
+  $("sub").textContent = `Route: ${c.route.map((s) => s.name + (s.transit ? " (transit)" : "")).join(" → ")} · Departure ${c.traveler.departure_date || "not set"}`;
+  $("risk").innerHTML = `<div class="risk ${esc(c.risk.level)}"><strong>${esc(c.risk.headline)}</strong></div>`;
+  let html = `<thead><tr><th>Medicine</th>${c.route.map((s) => `<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`;
+  c.medicines.forEach((m) => {
+    html += `<tr><th scope="row">${esc(m.name)}<span class="ing">${esc(m.ingredients.join(", ") || "ingredient unknown")}</span></th>`;
+    c.route.forEach((s) => { const f = c.findings.find((x) => x.medicine === m.name && x.country_code === s.code); html += `<td>${f ? `<span class="stamp ${esc(f.status)}" title="${esc(f.details)}">${esc(LABEL[f.status])}</span>` : ""}</td>`; });
+    html += "</tr>";
+  });
+  $("matrix").innerHTML = html + "</tbody>";
+  $("letter").value = c.letter;
+  if (c.status !== "awaiting_doctor") {
+    document.querySelectorAll("#content button, #content input, #content textarea").forEach((el) => (el.disabled = true));
+    $("msg").textContent = c.status === "doctor_approved" ? "You already approved this letter." : `This case is ${c.status}.`;
+  }
+}
+
+async function decide(decision) {
+  const body = { decision, doctor_name: $("dName").value.trim(), registration_no: $("dReg").value.trim(), note: $("dNote").value.trim(), letter: $("letter").value };
+  if (decision === "approve" && (!body.doctor_name || !body.registration_no)) { $("msg").textContent = "Add your name and registration number to approve."; return; }
+  if (decision === "approve" && /_{4,}/.test(body.letter) && !confirm("Some blanks (____) are still empty. Approve anyway?")) return;
+  if (decision === "request_changes" && !body.note) { $("msg").textContent = "Add a note saying what needs to change."; return; }
+  const res = await fetch(`/api/doctor/${encodeURIComponent(token)}/decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) { $("msg").textContent = data.detail || "Could not save."; return; }
+  document.querySelectorAll("#content button, #content input, #content textarea").forEach((el) => (el.disabled = true));
+  $("msg").textContent = decision === "approve" ? "Approved. The traveller can now print the letter." : "Sent back to the traveller.";
+}
+$("approve").addEventListener("click", () => decide("approve"));
+$("changes").addEventListener("click", () => decide("request_changes"));
+load();
+</script>
+</body>
+</html>

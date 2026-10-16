@@ -1,0 +1,41 @@
+{
+  "_about": "Groups active ingredients into legal categories. Country rules refer to these categories, so one rule covers every brand that contains the ingredient.",
+  "categories": {
+    "opioid": {
+      "label": "Opioid painkiller / cough suppressant",
+      "ingredients": ["codeine", "dihydrocodeine", "tramadol", "morphine", "oxycodone", "hydrocodone", "fentanyl", "tapentadol", "methadone", "buprenorphine"]
+    },
+    "stimulant_amphetamine": {
+      "label": "Amphetamine-type ADHD stimulant",
+      "ingredients": ["amphetamine", "dextroamphetamine", "dexamfetamine", "dexamphetamine", "lisdexamfetamine", "methamphetamine"]
+    },
+    "stimulant_methylphenidate": {
+      "label": "Methylphenidate ADHD stimulant",
+      "ingredients": ["methylphenidate", "dexmethylphenidate"]
+    },
+    "decongestant_precursor": {
+      "label": "Decongestant (stimulant precursor)",
+      "ingredients": ["pseudoephedrine", "ephedrine"]
+    },
+    "benzodiazepine": {
+      "label": "Benzodiazepine (anxiety / sleep)",
+      "ingredients": ["diazepam", "alprazolam", "lorazepam", "clonazepam", "temazepam", "bromazepam", "nitrazepam", "midazolam", "chlordiazepoxide"]
+    },
+    "z_drug": {
+      "label": "Sleeping tablet (Z-drug)",
+      "ingredients": ["zolpidem", "zopiclone", "eszopiclone", "zaleplon"]
+    },
+    "gabapentinoid": {
+      "label": "Nerve pain medicine (gabapentinoid)",
+      "ingredients": ["pregabalin", "gabapentin"]
+    },
+    "cannabinoid": {
+      "label": "Cannabis-derived product",
+      "ingredients": ["cannabidiol", "tetrahydrocannabinol", "cannabis", "nabiximols", "dronabinol"]
+    },
+    "antiviral_sensitive": {
+      "label": "HIV / hepatitis medicine",
+      "ingredients": ["tenofovir", "emtricitabine", "dolutegravir", "efavirenz", "lamivudine", "abacavir", "bictegravir", "sofosbuvir", "velpatasvir", "entecavir"]
+    }
+  }
+}

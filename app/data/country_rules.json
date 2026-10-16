@@ -1,0 +1,256 @@
+{
+  "_about": "Curated travel-medicine rules for MedPassport. Statuses: prohibited, permit_required, prescription_required, caution, allowed. lead_days = how many days before departure paperwork should be started. This is a hackathon dataset compiled from official sources and government travel advice; rules change, so the app always shows the source and asks the traveller and doctor to confirm with the embassy or regulator.",
+  "last_reviewed": "2026-10-16",
+  "countries": {
+    "JP": {
+      "name": "Japan",
+      "official_source": "https://www.mhlw.go.jp/english/policy/health-medical/pharmaceuticals/01.html",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry a copy of the prescription and keep medicines in original packaging. Bringing more than a one-month supply of prescription medicine requires an import confirmation (Yunyu Kakunin-sho) arranged before travel.",
+        "lead_days": 14
+      },
+      "categories": {
+        "decongestant_precursor": {
+          "status": "prohibited",
+          "details": "Japan treats some foreign cold medicines containing pseudoephedrine as stimulant raw material. Do not pack them; a home prescription does not protect you.",
+          "source": "https://www.khaleejtimes.com/uae/medicines-uae-travellers-cough-syrups-risk-arrest-abroad"
+        },
+        "stimulant_amphetamine": {
+          "status": "prohibited",
+          "details": "Amphetamine-based ADHD medicines (e.g. Adderall, dexamphetamine) are prohibited in Japan even with a prescription.",
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "stimulant_methylphenidate": {
+          "status": "permit_required",
+          "details": "Methylphenidate is strictly controlled. Confirm quantity limits and permission requirements with Japan's Narcotics Control Department before travel.",
+          "lead_days": 21,
+          "source": "https://www.ncd.mhlw.go.jp/en/"
+        },
+        "opioid": {
+          "status": "permit_required",
+          "details": "Codeine and other narcotic medicines need prior permission from Japan's Regional Bureau of Health and Welfare. Apply at least 14 days before the trip.",
+          "lead_days": 14,
+          "source": "https://www.ncd.mhlw.go.jp/en/"
+        },
+        "benzodiazepine": {
+          "status": "prescription_required",
+          "details": "Psychotropic medicines are allowed only in personal-use quantities with a prescription. Larger amounts need approval.",
+          "source": "https://www.ncd.mhlw.go.jp/en/"
+        },
+        "z_drug": {
+          "status": "prescription_required",
+          "details": "Psychotropic sleeping tablets are allowed only in personal-use quantities with a prescription.",
+          "source": "https://www.ncd.mhlw.go.jp/en/"
+        },
+        "cannabinoid": {
+          "status": "prohibited",
+          "details": "Products containing THC are illegal in Japan, including medical cannabis prescribed abroad.",
+          "source": "https://www.ncd.mhlw.go.jp/en/"
+        }
+      }
+    },
+    "AE": {
+      "name": "United Arab Emirates",
+      "official_source": "https://mohap.gov.ae",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry the prescription and keep medicines in original packaging. Controlled medicines need prior approval from the UAE Ministry of Health and Prevention, usually for up to 30 days of treatment.",
+        "lead_days": 14
+      },
+      "categories": {
+        "opioid": {
+          "status": "permit_required",
+          "details": "Codeine and Tramadol are controlled in the UAE. Get prior approval from the Ministry of Health and Prevention, and carry the prescription and a medical report.",
+          "lead_days": 14,
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "gabapentinoid": {
+          "status": "permit_required",
+          "details": "Pregabalin (Lyrica) and Gabapentin are controlled in the UAE. Get prior approval and carry the prescription.",
+          "lead_days": 14,
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "benzodiazepine": {
+          "status": "permit_required",
+          "details": "Sleep and anxiety medicines such as benzodiazepines are controlled in the UAE. Get prior approval and carry the prescription.",
+          "lead_days": 14,
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "z_drug": {
+          "status": "permit_required",
+          "details": "Sleeping tablets are controlled in the UAE. Get prior approval and carry the prescription.",
+          "lead_days": 14,
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "stimulant_methylphenidate": {
+          "status": "permit_required",
+          "details": "ADHD medicines such as Ritalin are controlled in the UAE. Get prior approval and carry the prescription.",
+          "lead_days": 14,
+          "source": "https://www.travelweekly.com.au/article/common-medications-that-could-land-aussies-travellers-behind-bars/"
+        },
+        "stimulant_amphetamine": {
+          "status": "permit_required",
+          "details": "Amphetamine-based ADHD medicines are controlled in the UAE. Get prior approval before travel.",
+          "lead_days": 14,
+          "source": "https://www.travelweekly.com.au/article/common-medications-that-could-land-aussies-travellers-behind-bars/"
+        },
+        "decongestant_precursor": {
+          "status": "prescription_required",
+          "details": "Cold medicines containing pseudoephedrine are controlled in the UAE; carry a prescription.",
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "cannabinoid": {
+          "status": "prohibited",
+          "details": "All cannabis products are illegal in the UAE, even with a prescription from your home country.",
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        },
+        "antiviral_sensitive": {
+          "status": "caution",
+          "details": "Travellers have been detained or deported for carrying HIV or hepatitis medication. Check current entry rules with the embassy before travelling.",
+          "source": "https://www.thesenior.com.au/story/5666975/common-medications-that-could-get-you-jailed-while-travelling-overseas/"
+        }
+      }
+    },
+    "SA": {
+      "name": "Saudi Arabia",
+      "official_source": "https://www.sfda.gov.sa",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry the prescription and medical report; keep medicines in original packaging. Controlled medicines need prior approval from the Saudi Food and Drug Authority.",
+        "lead_days": 14
+      },
+      "categories": {
+        "opioid": {"status": "permit_required", "details": "Narcotic medicines need prior approval from the Saudi Food and Drug Authority.", "lead_days": 14, "source": "https://www.sfda.gov.sa"},
+        "benzodiazepine": {"status": "permit_required", "details": "Psychotropic medicines need prior approval from the Saudi Food and Drug Authority.", "lead_days": 14, "source": "https://www.sfda.gov.sa"},
+        "z_drug": {"status": "permit_required", "details": "Psychotropic sleeping tablets need prior approval.", "lead_days": 14, "source": "https://www.sfda.gov.sa"},
+        "stimulant_methylphenidate": {"status": "permit_required", "details": "ADHD stimulants need prior approval.", "lead_days": 14, "source": "https://www.sfda.gov.sa"},
+        "stimulant_amphetamine": {"status": "permit_required", "details": "Amphetamine-type stimulants need prior approval; many are not allowed.", "lead_days": 14, "source": "https://www.sfda.gov.sa"},
+        "gabapentinoid": {"status": "permit_required", "details": "Pregabalin is controlled; get approval before travel.", "lead_days": 14, "source": "https://www.sfda.gov.sa"},
+        "cannabinoid": {"status": "prohibited", "details": "Cannabis products are illegal.", "source": "https://www.sfda.gov.sa"}
+      }
+    },
+    "QA": {
+      "name": "Qatar",
+      "official_source": "https://www.moph.gov.qa",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry the prescription; some cough and cold remedies need one even if sold over the counter elsewhere.",
+        "lead_days": 7
+      },
+      "categories": {
+        "opioid": {"status": "prescription_required", "details": "Codeine-containing cough and cold remedies must be accompanied by a prescription. Controlled quantities may need prior approval.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "decongestant_precursor": {"status": "prescription_required", "details": "Some cold remedies must be accompanied by a prescription.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "benzodiazepine": {"status": "permit_required", "details": "Psychotropic medicines are controlled; confirm approval requirements with the Ministry of Public Health.", "lead_days": 14, "source": "https://www.moph.gov.qa"},
+        "cannabinoid": {"status": "prohibited", "details": "Cannabis products are illegal.", "source": "https://www.moph.gov.qa"}
+      }
+    },
+    "SG": {
+      "name": "Singapore",
+      "official_source": "https://www.hsa.gov.sg",
+      "general": {
+        "status": "prescription_required",
+        "details": "Personal supplies of prescription medicine (generally up to 3 months) should travel with a prescription or doctor's letter.",
+        "lead_days": 7
+      },
+      "categories": {
+        "benzodiazepine": {"status": "permit_required", "details": "Anti-anxiety medicines need approval from the Health Sciences Authority before travel.", "lead_days": 14, "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "z_drug": {"status": "permit_required", "details": "Controlled sleeping tablets need approval from the Health Sciences Authority.", "lead_days": 14, "source": "https://www.hsa.gov.sg"},
+        "opioid": {"status": "permit_required", "details": "Certain painkillers require approval from the Health Sciences Authority before entry.", "lead_days": 14, "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "stimulant_methylphenidate": {"status": "permit_required", "details": "ADHD stimulants are controlled drugs; get approval before travel.", "lead_days": 14, "source": "https://www.hsa.gov.sg"},
+        "stimulant_amphetamine": {"status": "permit_required", "details": "Amphetamine-type stimulants are controlled drugs; get approval before travel.", "lead_days": 14, "source": "https://www.hsa.gov.sg"},
+        "cannabinoid": {"status": "prohibited", "details": "Cannabis products are illegal and penalties are severe.", "source": "https://www.hsa.gov.sg"}
+      }
+    },
+    "ID": {
+      "name": "Indonesia",
+      "official_source": "https://www.pom.go.id",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry the prescription and keep medicines in original packaging.",
+        "lead_days": 7
+      },
+      "categories": {
+        "stimulant_methylphenidate": {"status": "prohibited", "details": "Prescription ADHD medicines are illegal in Indonesia.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "stimulant_amphetamine": {"status": "prohibited", "details": "Prescription ADHD medicines are illegal in Indonesia.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "opioid": {"status": "prohibited", "details": "Codeine is illegal in Indonesia.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "benzodiazepine": {"status": "prohibited", "details": "Sleeping tablets are illegal in Indonesia.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "z_drug": {"status": "prohibited", "details": "Sleeping tablets are illegal in Indonesia.", "source": "https://www.stornowaygazette.co.uk/read-this/holidaymakers-have-been-warned-to-check-before-they-travel-with-medicines-46726"},
+        "cannabinoid": {"status": "prohibited", "details": "Cannabis products are illegal and penalties are severe.", "source": "https://www.pom.go.id"}
+      }
+    },
+    "GR": {
+      "name": "Greece",
+      "official_source": "https://www.eof.gr",
+      "general": {
+        "status": "allowed",
+        "details": "Personal quantities of prescription medicine are generally allowed; keep the prescription with you.",
+        "lead_days": 0
+      },
+      "categories": {
+        "opioid": {"status": "prescription_required", "details": "Codeine is a controlled substance in Greece in all cases. Carry a prescription stating what it is, how much is taken and that it is for personal use.", "source": "https://www.khaleejtimes.com/uae/medicines-uae-travellers-cough-syrups-risk-arrest-abroad"},
+        "cannabinoid": {"status": "caution", "details": "Rules on cannabis-based medicines are strict; confirm with the Greek regulator before travel.", "source": "https://www.eof.gr"}
+      }
+    },
+    "GB": {
+      "name": "United Kingdom",
+      "official_source": "https://www.gov.uk/travelling-controlled-drugs",
+      "general": {
+        "status": "allowed",
+        "details": "Prescription medicines for personal use are generally allowed; carry the prescription or a doctor's letter.",
+        "lead_days": 0
+      },
+      "categories": {
+        "opioid": {"status": "prescription_required", "details": "Controlled drugs for personal use: carry a prescription or doctor's letter. More than 3 months' supply needs a Home Office personal licence.", "source": "https://www.gov.uk/travelling-controlled-drugs"},
+        "benzodiazepine": {"status": "prescription_required", "details": "Controlled drugs for personal use: carry a prescription or doctor's letter. More than 3 months' supply needs a Home Office licence.", "source": "https://www.gov.uk/travelling-controlled-drugs"},
+        "z_drug": {"status": "prescription_required", "details": "Carry a prescription or doctor's letter.", "source": "https://www.gov.uk/travelling-controlled-drugs"},
+        "stimulant_methylphenidate": {"status": "prescription_required", "details": "Controlled drug: carry a prescription or doctor's letter.", "source": "https://www.gov.uk/travelling-controlled-drugs"},
+        "stimulant_amphetamine": {"status": "prescription_required", "details": "Controlled drug: carry a prescription or doctor's letter.", "source": "https://www.gov.uk/travelling-controlled-drugs"},
+        "gabapentinoid": {"status": "prescription_required", "details": "Controlled drug: carry a prescription or doctor's letter.", "source": "https://www.gov.uk/travelling-controlled-drugs"},
+        "cannabinoid": {"status": "caution", "details": "Cannabis-based medicines are tightly controlled; most products containing THC are illegal without a UK specialist prescription.", "source": "https://www.gov.uk/travelling-controlled-drugs"}
+      }
+    },
+    "US": {
+      "name": "United States",
+      "official_source": "https://www.cbp.gov/travel/international-visitors/kbyg/prohibited-restricted",
+      "general": {
+        "status": "prescription_required",
+        "details": "Bring medicines in original containers with the prescription, generally no more than a 90-day personal supply. Declare controlled medicines to customs.",
+        "lead_days": 0
+      },
+      "categories": {
+        "cannabinoid": {"status": "prohibited", "details": "Cannabis containing THC is illegal under federal law, even if prescribed abroad.", "source": "https://www.cbp.gov/travel/international-visitors/kbyg/prohibited-restricted"}
+      }
+    },
+    "TH": {
+      "name": "Thailand",
+      "official_source": "https://www.fda.moph.go.th",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry the prescription; personal supplies are generally limited to 30 days.",
+        "lead_days": 7
+      },
+      "categories": {
+        "opioid": {"status": "permit_required", "details": "Narcotic medicines need a permit from the Thai Food and Drug Administration (up to 30 days' supply).", "lead_days": 14, "source": "https://www.fda.moph.go.th"},
+        "benzodiazepine": {"status": "permit_required", "details": "Controlled psychotropics need a permit from the Thai FDA.", "lead_days": 14, "source": "https://www.fda.moph.go.th"},
+        "z_drug": {"status": "permit_required", "details": "Controlled psychotropics need a permit from the Thai FDA.", "lead_days": 14, "source": "https://www.fda.moph.go.th"},
+        "stimulant_methylphenidate": {"status": "permit_required", "details": "ADHD stimulants need a permit from the Thai FDA.", "lead_days": 14, "source": "https://www.fda.moph.go.th"},
+        "stimulant_amphetamine": {"status": "permit_required", "details": "Amphetamine-type stimulants need a permit; many are not allowed.", "lead_days": 14, "source": "https://www.fda.moph.go.th"},
+        "decongestant_precursor": {"status": "caution", "details": "Pseudoephedrine is controlled in Thailand; confirm with the Thai FDA before travel.", "source": "https://www.fda.moph.go.th"},
+        "cannabinoid": {"status": "caution", "details": "Thailand's cannabis rules have changed several times; confirm the current position before travel.", "source": "https://www.fda.moph.go.th"}
+      }
+    },
+    "PK": {
+      "name": "Pakistan",
+      "official_source": "https://www.dra.gov.pk",
+      "general": {
+        "status": "prescription_required",
+        "details": "Carry the prescription and keep medicines in original packaging.",
+        "lead_days": 0
+      },
+      "categories": {
+        "cannabinoid": {"status": "prohibited", "details": "Cannabis products are illegal.", "source": "https://www.dra.gov.pk"}
+      }
+    }
+  }
+}
