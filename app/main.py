@@ -6,8 +6,10 @@ Human approval gates:
   3. The doctor reviews, edits and approves (or requests changes) on their own page.
 Nothing is sent or finalised without these approvals, and every decision is logged.
 """
+import logging
 import re
 import secrets
+import time
 from datetime import date, timedelta
 from typing import Literal
 
@@ -95,6 +97,10 @@ class DoctorDecisionIn(BaseModel):
     letter: str | None = Field(default=None, max_length=8000)
 
 
+log = logging.getLogger("medpassport")
+logging.basicConfig(level=logging.INFO)
+_ai_check_cache: dict = {}
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -160,6 +166,27 @@ def health():
             "countries_verified": len(rules.RULES)}
 
 
+@app.get("/api/ai-check")
+def ai_check():
+    """Makes one tiny call to the AI model and reports the exact error, if any. Cached for 60 s."""
+    if _ai_check_cache and time.time() - _ai_check_cache["at"] < 60:
+        return _ai_check_cache["result"]
+    result = {"provider": llm.provider(), "model": llm.model_name()}
+    if not llm.available():
+        result.update(ok=False, error="No AI key configured (check LLM_PROVIDER and the API key variable).")
+    else:
+        start = time.perf_counter()
+        try:
+            reply = llm.generate("Reply with the single word OK.")
+            result.update(ok=True, reply=reply[:20])
+        except llm.LLMError as e:
+            result.update(ok=False, error=str(e)[:400])
+        result["seconds"] = round(time.perf_counter() - start, 1)
+    _ai_check_cache.update(at=time.time(), result=result)
+    log.info("ai-check: %s", result)
+    return result
+
+
 @app.get("/api/countries")
 def list_countries():
     return {"countries": rules.countries(), "last_reviewed": rules.LAST_REVIEWED}
@@ -184,7 +211,9 @@ async def extract_medicines(file: UploadFile = File(...)):
     try:
         meds = agent.extract_from_image(data, mime)
     except llm.LLMError as e:
-        raise HTTPException(502, f"Could not read the photo: {e}. Please type the medicines instead.")
+        log.warning("photo reading failed: %s", e)
+        # 422, not 502: some hosting gateways replace 5xx bodies, which would hide this message
+        raise HTTPException(422, f"Could not read the photo: {e}. Please type the medicines instead.")
     return {"medicines": meds, "note": "Read by AI. Please check every name before continuing."}
 
 

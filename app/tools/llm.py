@@ -56,6 +56,15 @@ def _extract_json(text: str):
     raise LLMError("The AI model did not return valid JSON.")
 
 
+def _error_message(r) -> str:
+    try:
+        err = r.json().get("error", {})
+        msg = err.get("message") if isinstance(err, dict) else str(err)
+    except ValueError:
+        msg = r.text
+    return (msg or "no details")[:240]
+
+
 def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:
     parts: list[dict] = [{"text": prompt}]
     if image:
@@ -64,6 +73,9 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
                   "generationConfig": {"temperature": 0.2}}
     if want_json:
         body["generationConfig"]["responseMimeType"] = "application/json"
+    if "2.5-flash" in config.GEMINI_MODEL:
+        # Reading a label needs no long reasoning; skipping it keeps replies fast
+        body["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
     try:
         r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT,
@@ -71,7 +83,7 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach Gemini: {e.__class__.__name__}") from e
     if r.status_code != 200:
-        raise LLMError(f"Gemini returned HTTP {r.status_code}: {r.text[:200]}")
+        raise LLMError(f"Gemini returned HTTP {r.status_code}: {_error_message(r)}")
     try:
         return r.json()["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, ValueError) as e:
@@ -100,7 +112,7 @@ def _openai(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach the AI API: {e.__class__.__name__}") from e
     if r.status_code != 200:
-        raise LLMError(f"AI API returned HTTP {r.status_code}: {r.text[:200]}")
+        raise LLMError(f"AI API returned HTTP {r.status_code}: {_error_message(r)}")
     try:
         return r.json()["choices"][0]["message"]["content"]
     except (KeyError, IndexError, ValueError) as e:

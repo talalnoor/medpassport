@@ -39,7 +39,7 @@ OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
 OPENAI_MODEL = env("OPENAI_MODEL", "llama-3.3-70b-versatile")
 OPENAI_VISION_MODEL = env("OPENAI_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
-LLM_TIMEOUT = float(env("LLM_TIMEOUT", "40"))
+LLM_TIMEOUT = float(env("LLM_TIMEOUT", "25"))
 
 # Optional email sending (for the doctor review link). Leave empty to show the link on screen instead.
 SMTP_HOST = env("SMTP_HOST")

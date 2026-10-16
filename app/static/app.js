@@ -23,8 +23,11 @@ let pollTimer = null;
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: opts.body instanceof FormData ? {} : { "Content-Type": "application/json" }, ...opts });
-  const data = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  let data = {};
+  try { data = JSON.parse(raw); } catch { data = {}; }
   if (!res.ok) {
+    if (!data.detail && raw) data.detail = `Server error ${res.status}: ${raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160)}`;
     let msg = data.detail;
     if (Array.isArray(msg)) msg = msg.map((d) => `${(d.loc || []).slice(1).join(" ")}: ${d.msg}`).join("; ");
     throw new Error(msg || `Request failed (${res.status})`);
