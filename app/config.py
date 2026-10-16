@@ -35,6 +35,8 @@ def env(name: str, default: str = "") -> str:
 LLM_PROVIDER = env("LLM_PROVIDER", "gemini").lower()
 GEMINI_API_KEY = env("GEMINI_API_KEY")
 GEMINI_MODEL = env("GEMINI_MODEL", "gemini-3.8-flash")
+# Optional second model to try when the first is overloaded (leave empty to disable)
+GEMINI_FALLBACK_MODEL = env("GEMINI_FALLBACK_MODEL")
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
 OPENAI_MODEL = env("OPENAI_MODEL", "llama-3.3-70b-versatile")

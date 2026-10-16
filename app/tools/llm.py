@@ -9,6 +9,7 @@ import base64
 import json
 import logging
 import re
+import time
 
 import httpx
 
@@ -19,7 +20,9 @@ log = logging.getLogger("medpassport.llm")
 
 
 class LLMError(Exception):
-    pass
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 def provider() -> str:
@@ -78,7 +81,7 @@ def _thinking_config(model: str) -> dict | None:
     return None
 
 
-def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:
+def _gemini_once(model: str, prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:
     parts: list[dict] = [{"text": prompt}]
     if image:
         parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(image).decode()}})
@@ -86,10 +89,10 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
                   "generationConfig": {"temperature": 0.2}}
     if want_json:
         body["generationConfig"]["responseMimeType"] = "application/json"
-    thinking = _thinking_config(config.GEMINI_MODEL)
+    thinking = _thinking_config(model)
     if thinking:
         body["generationConfig"]["thinkingConfig"] = thinking
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {"x-goog-api-key": config.GEMINI_API_KEY}
     try:
         r = httpx.post(url, json=body, timeout=config.LLM_TIMEOUT, headers=headers)
@@ -105,11 +108,11 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
                 log.warning("Gemini 400 with JSON mode: %s", _error_message(r))
                 r = httpx.post(url, json={"contents": body["contents"]}, timeout=config.LLM_TIMEOUT, headers=headers)
     except httpx.TimeoutException as e:
-        raise LLMError(f"Gemini did not answer within {int(config.LLM_TIMEOUT)} seconds (model {config.GEMINI_MODEL})") from e
+        raise LLMError(f"Gemini did not answer within {int(config.LLM_TIMEOUT)} seconds (model {model})") from e
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach Gemini: {e.__class__.__name__}") from e
     if r.status_code != 200:
-        raise LLMError(f"Gemini returned HTTP {r.status_code}: {_error_message(r)}")
+        raise LLMError(f"Gemini returned HTTP {r.status_code}: {_error_message(r)}", status=r.status_code)
     try:
         parts = r.json()["candidates"][0]["content"]["parts"]
         text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
@@ -118,6 +121,27 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str
     if not text.strip():
         raise LLMError("Gemini returned an empty answer.")
     return text
+
+
+BUSY_CODES = (429, 500, 503)
+
+
+def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:
+    """Retries when Google is busy, then tries the optional fallback model."""
+    models = [config.GEMINI_MODEL] + ([config.GEMINI_FALLBACK_MODEL] if config.GEMINI_FALLBACK_MODEL else [])
+    last: LLMError | None = None
+    for model in models:
+        for attempt, wait in enumerate((0, 1.5, 4)):
+            if wait:
+                time.sleep(wait)
+            try:
+                return _gemini_once(model, prompt, image, mime, want_json)
+            except LLMError as e:
+                last = e
+                if e.status not in BUSY_CODES:
+                    raise
+                log.warning("Gemini busy (%s, model %s, attempt %d)", e.status, model, attempt + 1)
+    raise LLMError(f"Google's AI is busy right now. Please try again in a minute. ({last})", status=last.status if last else None)
 
 
 def _openai(prompt: str, image: bytes | None, mime: str, want_json: bool) -> str:

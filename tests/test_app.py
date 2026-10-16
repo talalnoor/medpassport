@@ -260,3 +260,41 @@ def test_gemini_timeout_message(monkeypatch):
         raise AssertionError("expected LLMError")
     except llm.LLMError as e:
         assert "did not answer within" in str(e)
+
+
+def test_gemini_busy_retries_then_fallback(monkeypatch):
+    from app import config
+    from app.tools import llm
+
+    seen = []
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        seen.append(url.split("/models/")[1].split(":")[0])
+        if "backup" in url:
+            return _FakeResponse({"candidates": [{"content": {"parts": [{"text": "OK"}]}}]})
+        return _FakeResponse({"error": {"message": "high demand"}}, 503)
+
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(config, "GEMINI_MODEL", "main-model")
+    monkeypatch.setattr(config, "GEMINI_FALLBACK_MODEL", "backup-model")
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(llm.httpx, "post", fake_post)
+    assert llm.generate("hi") == "OK"
+    assert seen == ["main-model"] * 3 + ["backup-model"]
+
+
+def test_gemini_busy_gives_friendly_message(monkeypatch):
+    from app import config
+    from app.tools import llm
+
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(config, "GEMINI_FALLBACK_MODEL", "")
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: _FakeResponse({"error": {"message": "high demand"}}, 503))
+    try:
+        llm.generate("hi")
+        raise AssertionError("expected LLMError")
+    except llm.LLMError as e:
+        assert "busy right now" in str(e)
