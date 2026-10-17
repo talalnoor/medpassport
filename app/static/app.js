@@ -189,10 +189,15 @@ function render(c, animate = false) {
   $("plan").innerHTML = c.plan.map((p) => `<li class="${esc(p.kind)} ${p.overdue ? "overdue" : ""}"><div><div class="title">${esc(p.title)}</div><div class="small muted">${esc(p.detail)}</div></div><span class="due">${p.due ? (p.overdue ? "Overdue " : "By ") + esc(p.due) : ""}</span></li>`).join("");
   $("icsLink").href = `/api/cases/${c.id}/calendar.ics`;
 
-  // letter + gate
-  $("letter").value = c.letter;
+  // letter + gate (older cases have no letter_needed field: treat them as needing a letter)
+  const letterNeeded = c.letter_needed !== false;
+  $("noLetter").classList.toggle("hidden", letterNeeded);
+  $("letterBody").classList.toggle("hidden", !letterNeeded);
+  $("cancelBtnNoLetter").classList.toggle("hidden", c.status === "cancelled" || c.status === "doctor_approved");
+  $("letter").value = c.letter || "";
   $("printLink").href = `/api/cases/${c.id}/letter`;
-  $("statusBadge").textContent = CASE_STATUS[c.status] || c.status;
+  $("statusBadge").textContent = !letterNeeded && c.status === "awaiting_traveler_review"
+    ? "No letter needed" : (CASE_STATUS[c.status] || c.status);
   $("statusBadge").className = `status-badge ${c.status}`;
   const editable = ["awaiting_traveler_review", "changes_requested"].includes(c.status);
   $("letter").readOnly = !editable;
@@ -287,7 +292,6 @@ function newTrip() {
 }
 
 async function init() {
-  loadHealth();
   try { countries = (await api("/api/countries")).countries; } catch { countries = []; }
   addStop(); addMed();
   $("addStop").addEventListener("click", () => addStop());
@@ -299,6 +303,7 @@ async function init() {
   $("confirm").addEventListener("change", (e) => ($("approveBtn").disabled = !e.target.checked));
   $("approveBtn").addEventListener("click", approve);
   $("cancelBtn").addEventListener("click", cancelCase);
+  $("cancelBtnNoLetter").addEventListener("click", cancelCase);
   $("newTripBtn").addEventListener("click", newTrip);
   loadCases();
 }

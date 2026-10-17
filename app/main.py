@@ -5,6 +5,7 @@ Human approval gates:
   2. Traveller reviews findings and the drafted letter, then approves sending it to a doctor.
   3. The doctor reviews, edits and approves (or requests changes) on their own page.
 Nothing is sent or finalised without these approvals, and every decision is logged.
+A letter that names a medicine not allowed on the route is never saved, sent or approved.
 """
 import logging
 import re
@@ -134,6 +135,23 @@ def _base_url(request: Request) -> str:
     return config.PUBLIC_BASE_URL or str(request.base_url).rstrip("/")
 
 
+def _require_letter_needed(case: dict):
+    """Older cases have no 'letter_needed' field; treat them as needing a letter."""
+    if not case.get("letter_needed", True):
+        raise HTTPException(409, "No doctor's letter is needed: none of the medicines on this trip "
+                                 "can be carried on your route.")
+
+
+def _block_banned(case: dict, text: str, actor: str, action: str):
+    """Refuse a letter that names a medicine (or its ingredient) that is not allowed on the route."""
+    hits = agent.find_banned_in_letter(case, text)
+    if hits:
+        db.add_audit(case["id"], actor, f"blocked: {action}",
+                     f"letter mentions {', '.join(hits)}, not allowed on route")
+        raise HTTPException(422, f"The letter mentions {', '.join(hits)}, which is not allowed on this "
+                                 "route. Remove it before continuing.")
+
+
 # ---------- demo data ----------
 def demo_payload() -> dict:
     return {
@@ -155,7 +173,7 @@ def seed_demo():
                           [m.model_dump() for m in payload.medicines])
     agent.run(case, use_ai=False)  # no AI call at startup: boots fast, works even if the AI is down
     db.save_case(case)
-    db.add_audit(case["id"], "system", "demo case created", "Sample trip Lahore → Dubai (transit) → Tokyo")
+    db.add_audit(case["id"], "system", "demo case created", "Sample trip Dubai (transit) → Tokyo")
 
 
 # ---------- API ----------
@@ -245,6 +263,8 @@ def edit_letter(case_id: str, body: LetterIn):
     case = _load(case_id)
     if case["status"] not in ("awaiting_traveler_review", "changes_requested"):
         raise HTTPException(409, "The letter can only be edited before it is sent to the doctor.")
+    _require_letter_needed(case)
+    _block_banned(case, body.letter, "traveller", "letter edit")
     case["letter"] = body.letter
     db.save_case(case)
     db.add_audit(case_id, "traveller", "edited letter")
@@ -259,6 +279,8 @@ def traveller_approve(case_id: str, body: ApproveIn, request: Request):
         raise HTTPException(400, "Explicit confirmation is required.")
     if case["status"] not in ("awaiting_traveler_review", "changes_requested"):
         raise HTTPException(409, f"Case is '{case['status']}', it cannot be approved again.")
+    _require_letter_needed(case)
+    _block_banned(case, case.get("letter", ""), "agent", "send to doctor")
     if body.doctor_email and not EMAIL_RE.match(body.doctor_email):
         raise HTTPException(422, "Doctor email looks invalid.")
     case["doctor_token"] = secrets.token_urlsafe(18)
@@ -324,11 +346,14 @@ def doctor_decision(token: str, body: DoctorDecisionIn):
         raise HTTPException(404, "This review link is invalid or has expired.")
     if case["status"] != "awaiting_doctor":
         raise HTTPException(409, f"This case is '{case['status']}' and cannot be reviewed now.")
+    actor = f"doctor:{body.doctor_name.strip() or 'unnamed'}"
     if body.letter:
+        _block_banned(case, body.letter, actor, "doctor letter edit")
         case["letter"] = body.letter
     if body.decision == "approve":
         if not body.doctor_name.strip() or not body.registration_no.strip():
             raise HTTPException(422, "Doctor name and registration number are required to approve.")
+        _block_banned(case, case.get("letter", ""), actor, "doctor approval")
         case["status"] = "doctor_approved"
         case["doctor_review"] = {"doctor_name": body.doctor_name.strip(),
                                  "registration_no": body.registration_no.strip(),
@@ -338,7 +363,7 @@ def doctor_decision(token: str, body: DoctorDecisionIn):
         case["status"] = "changes_requested"
         case["doctor_review"] = {"doctor_name": body.doctor_name.strip(), "note": body.note, "at": db.now_iso()}
         case.pop("doctor_token", None)
-        db.add_audit(case["id"], f"doctor:{body.doctor_name.strip() or 'unnamed'}", "requested changes", body.note)
+        db.add_audit(case["id"], actor, "requested changes", body.note)
     db.save_case(case)
     return {"ok": True, "status": case["status"]}
 

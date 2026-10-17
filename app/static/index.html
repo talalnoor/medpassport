@@ -14,12 +14,11 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">Rx</span><span class="brand-name">MedPassport</span></a>
-      <div class="status-strip" id="statusStrip" aria-live="polite"></div>
     </div>
   </header>
 
   <section class="hero">
-    <h1>Your cold medicine can get you arrested in Japan.</h1>
+    <h1>Make sure your medicines are legal before you fly.</h1>
     <p>Tell MedPassport where you are flying and what you take. It checks every stop on your route, plans the permits and deadlines, and drafts the letter your doctor signs. Nothing is sent without your approval and your doctor's.</p>
   </section>
 
@@ -97,23 +96,35 @@
             <h2 id="letterTitle">Doctor's letter</h2>
             <span class="status-badge" id="statusBadge"></span>
           </div>
-          <p class="muted small">Drafted from the verified findings above. Fix anything that is wrong, then send it to your doctor. Your doctor completes, approves and signs it.</p>
-          <label for="letter" class="hidden">Letter text</label>
-          <textarea id="letter"></textarea>
-          <div class="actions">
-            <button class="btn ghost" type="button" id="saveLetter">Save changes</button>
-            <a class="btn ghost" id="printLink" href="#" target="_blank" rel="noopener">Open printable letter</a>
+
+          <!-- Shown instead of the letter when none of the medicines can be carried -->
+          <div id="noLetter" class="hidden">
+            <p>No letter is needed for this trip. None of the medicines you entered can be carried on this route, so there is nothing for a doctor to declare.</p>
+            <p class="muted small">If you change your medicines, check a new trip and MedPassport will draft a letter for the ones you can carry.</p>
+            <div class="actions">
+              <button class="btn danger" type="button" id="cancelBtnNoLetter">Cancel this trip</button>
+            </div>
           </div>
 
-          <div class="gate" id="gate">
-            <h3>Approve and send to your doctor</h3>
-            <p class="muted small">MedPassport will create a private review link for your doctor. If you add their email, it is sent there.</p>
-            <label for="docEmail">Doctor's email (optional)</label>
-            <input id="docEmail" type="email" placeholder="doctor@clinic.com">
-            <label class="check-inline" style="margin-top:10px"><input type="checkbox" id="confirm"> I checked the medicines, route and letter, and they are correct.</label>
+          <div id="letterBody">
+            <p class="muted small">Drafted from the verified findings above. It lists only the medicines you can carry. Fix anything that is wrong, then send it to your doctor. Your doctor completes, approves and signs it.</p>
+            <label for="letter" class="hidden">Letter text</label>
+            <textarea id="letter"></textarea>
             <div class="actions">
-              <button class="btn" type="button" id="approveBtn" disabled>Send to doctor</button>
-              <button class="btn danger" type="button" id="cancelBtn">Cancel this trip</button>
+              <button class="btn ghost" type="button" id="saveLetter">Save changes</button>
+              <a class="btn ghost" id="printLink" href="#" target="_blank" rel="noopener">Open printable letter</a>
+            </div>
+
+            <div class="gate" id="gate">
+              <h3>Approve and send to your doctor</h3>
+              <p class="muted small">MedPassport will create a private review link for your doctor. If you add their email, it is sent there.</p>
+              <label for="docEmail">Doctor's email (optional)</label>
+              <input id="docEmail" type="email" placeholder="doctor@clinic.com">
+              <label class="check-inline" style="margin-top:10px"><input type="checkbox" id="confirm"> I checked the medicines, route and letter, and they are correct.</label>
+              <div class="actions">
+                <button class="btn" type="button" id="approveBtn" disabled>Send to doctor</button>
+                <button class="btn danger" type="button" id="cancelBtn">Cancel this trip</button>
+              </div>
             </div>
           </div>
           <div id="afterApprove"></div>

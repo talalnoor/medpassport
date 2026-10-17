@@ -8,6 +8,7 @@ verified rules engine, never from the model's memory.
 import base64
 import json
 import logging
+import math
 import re
 import time
 
@@ -20,9 +21,12 @@ log = logging.getLogger("medpassport.llm")
 
 
 class LLMError(Exception):
-    def __init__(self, message: str, status: int | None = None):
+    def __init__(self, message: str, status: int | None = None,
+                 kind: str | None = None, retry_after: float | None = None):
         super().__init__(message)
         self.status = status
+        self.kind = kind                # for 429: "daily", "minute" or "unknown"
+        self.retry_after = retry_after  # seconds Google asked us to wait, if it said
 
 
 def provider() -> str:
@@ -72,6 +76,68 @@ def _error_message(r) -> str:
     return (msg or "no details")[:240]
 
 
+# ---------- quota (HTTP 429) handling ----------
+# After a 429 the model is put on a cooldown, so the app stops calling it (and stops
+# making the traveller wait) until the limit has reset. The cooldown is per process.
+_cooldown: dict[str, tuple[float, str]] = {}  # model -> (until, as time.monotonic(); kind)
+
+
+def _quota_info(r) -> tuple[str, float | None]:
+    """Reads Google's 429 details: which limit was hit and how long to wait."""
+    kind, retry = "unknown", None
+    try:
+        details = r.json().get("error", {}).get("details", []) or []
+    except (ValueError, AttributeError):
+        details = []
+    for d in details if isinstance(details, list) else []:
+        t = str(d.get("@type", ""))
+        if t.endswith("QuotaFailure"):
+            for v in d.get("violations", []) or []:
+                qid = f"{v.get('quotaId', '')} {v.get('quotaMetric', '')}".lower()
+                if "perday" in qid:
+                    kind = "daily"
+                elif "perminute" in qid and kind != "daily":
+                    kind = "minute"
+        elif t.endswith("RetryInfo"):
+            m = re.match(r"([\d.]+)s", str(d.get("retryDelay", "")))
+            if m:
+                retry = float(m.group(1))
+    return kind, retry
+
+
+def _seconds_to_daily_reset() -> float:
+    """Gemini daily quotas reset at midnight Pacific time."""
+    try:
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("America/Los_Angeles"))
+        nxt = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return (nxt - now).total_seconds()
+    except Exception:  # no time zone data on this server
+        return 3600.0
+
+
+def _cooldown_seconds(kind: str, retry_after: float | None) -> float:
+    if kind == "daily":
+        return _seconds_to_daily_reset()
+    if kind == "minute":
+        return max(retry_after or 60.0, 5.0)
+    return max(retry_after or 300.0, 5.0)
+
+
+def _quota_message(kind: str, seconds_left: float) -> str:
+    """Short, plain message. Callers add their own lead-in and closing sentence."""
+    if kind == "daily":
+        hours = max(1, math.ceil(seconds_left / 3600))
+        return ("the AI's free daily limit for this app is used up. It resets at midnight Pacific time, "
+                f"in about {hours} hour{'s' if hours != 1 else ''}")
+    if kind == "minute":
+        secs = max(5, math.ceil(seconds_left))
+        return f"too many AI requests in the last minute. Try again in about {secs} seconds"
+    mins = max(1, math.ceil(seconds_left / 60))
+    return f"the AI's usage limit for this app has been reached. Try again in about {mins} minute{'s' if mins != 1 else ''}"
+
+
 def _thinking_config(model: str) -> dict | None:
     """Labels and short summaries need no long reasoning; less thinking = much faster replies."""
     if "2.5-flash" in model:
@@ -118,6 +184,11 @@ def _gemini_once(model: str, prompt: str, image: bytes | None, mime: str, want_j
         raise LLMError(f"Gemini did not answer in time (model {model})", status=408) from e
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach Gemini: {e.__class__.__name__}") from e
+    if r.status_code == 429:
+        kind, retry = _quota_info(r)
+        log.warning("Gemini 429 (%s limit, retry after %s s, model %s): %s", kind, retry, model, _error_message(r))
+        wait = _cooldown_seconds(kind, retry)
+        raise LLMError(_quota_message(kind, wait), status=429, kind=kind, retry_after=retry)
     if r.status_code != 200:
         raise LLMError(f"Gemini returned HTTP {r.status_code}: {_error_message(r)}", status=r.status_code)
     try:
@@ -130,14 +201,22 @@ def _gemini_once(model: str, prompt: str, image: bytes | None, mime: str, want_j
     return text
 
 
-BUSY_CODES = (429, 500, 503)
+BUSY_CODES = (500, 503)  # temporary server trouble: worth a quick retry. 429 is handled separately.
 
 
 def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool, deadline: float) -> str:
-    """Retries when Google is busy (within the time budget), then tries the optional fallback model."""
+    """Retries when Google is busy (within the time budget), then tries the optional fallback model.
+    A model that hit its quota is skipped until the quota resets; the fallback model has its own quota."""
     models = [config.GEMINI_MODEL] + ([config.GEMINI_FALLBACK_MODEL] if config.GEMINI_FALLBACK_MODEL else [])
     last: LLMError | None = None
     for model in models:
+        cd = _cooldown.get(model)
+        if cd:
+            left = cd[0] - time.monotonic()
+            if left > 0:
+                last = LLMError(_quota_message(cd[1], left), status=429, kind=cd[1])
+                continue
+            _cooldown.pop(model, None)
         for attempt, wait in enumerate((0, 1.5, 4)):
             if wait:
                 if deadline - time.monotonic() < wait + 4:
@@ -147,12 +226,19 @@ def _gemini(prompt: str, image: bytes | None, mime: str, want_json: bool, deadli
                 return _gemini_once(model, prompt, image, mime, want_json, deadline)
             except LLMError as e:
                 last = e
+                if e.status == 429:
+                    _cooldown[model] = (time.monotonic() + _cooldown_seconds(e.kind or "unknown", e.retry_after),
+                                        e.kind or "unknown")
+                    break  # retrying now would only burn more quota; try the fallback model
                 if e.status not in BUSY_CODES:
                     raise
-                log.warning("Gemini busy (%s, model %s, attempt %d)", e.status, model, attempt + 1)
+                log.warning("Gemini busy (%s, model %s, attempt %d): %s", e.status, model, attempt + 1, e)
         if deadline - time.monotonic() < 5:
             break
-    raise LLMError(f"Google's AI is busy right now. Please try again in a minute. ({last})", status=last.status if last else None)
+    if last and last.status == 429:
+        raise last
+    raise LLMError("Google's AI is busy right now. Try again in a minute",
+                   status=last.status if last else None)
 
 
 def _openai(prompt: str, image: bytes | None, mime: str, want_json: bool, deadline: float) -> str:
@@ -178,8 +264,11 @@ def _openai(prompt: str, image: bytes | None, mime: str, want_json: bool, deadli
         raise LLMError("The AI API did not answer in time", status=408) from e
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach the AI API: {e.__class__.__name__}") from e
+    if r.status_code == 429:
+        log.warning("AI API 429: %s", _error_message(r))
+        raise LLMError("the AI's usage limit for this app has been reached. Try again later", status=429)
     if r.status_code != 200:
-        raise LLMError(f"AI API returned HTTP {r.status_code}: {_error_message(r)}")
+        raise LLMError(f"AI API returned HTTP {r.status_code}: {_error_message(r)}", status=r.status_code)
     try:
         return r.json()["choices"][0]["message"]["content"]
     except (KeyError, IndexError, ValueError) as e:
